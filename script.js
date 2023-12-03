@@ -1,77 +1,96 @@
-
-const setButton = document.getElementById("set-btn");
-const activeTimersContainer = document.getElementById(
-  "active-timers-container"
-);
-
-
-const noTimerDisplayMessage = document.getElementById("no-timers-display-msg");
-const audio = document.getElementById("audio-file");
-let numberOfActiveTimers = 0;
+const hh = document.getElementById("hoursInput");
+const mm = document.getElementById("minutesInput");
+const ss = document.getElementById("secondsInput");
+const set = document.getElementById("set");
+const timersContainer = document.querySelector(".timersContainer");
+const stopSound = document.getElementById("timer-end");
 
 
-function addNewTimer() {
-    const hours = Number(document.getElementById("hour").value);
-    const minutes = Number(document.getElementById("minute").value);
-    const seconds = Number(document.getElementById("seconds").value);
-  
-    // total time calculation in seconds
-    const totalTime = hours * 3600 + minutes * 60 + seconds;
-  
-    if (totalTime > 0) {
-      const newTimerCard = document.createElement("div");
-      newTimerCard.classList.add("timer-card");
-      newTimerCard.innerHTML = `
-          <span>Time Left :</span>
-          <span id="timer-container">
-              <input id="hour" type="number" min="0" max="24" placeholder="${hours.toString().padStart(2, "0")}">:
-              <input id="minute" type="number" min="0" max="60" placeholder="${minutes.toString().padStart(2, "0")}">:
-              <input id="seconds" type="number" min="0" max="60" placeholder="${seconds.toString().padStart(2, "0")}">
-          </span>
-          <button class="btn" onclick="deleteTimer(this)">Delete</button>
-          `;
-      activeTimersContainer.appendChild(newTimerCard);
-      numberOfActiveTimers++;
-      noTimerDisplayMessage.style.display = "none";
-      runtimer(totalTime, newTimerCard);
+function noTimerCheck(){
+    if(timersContainer.childElementCount == 0){
+        // No timer present , display you have no timers present currently
+        const noTimerMsg = document.createElement("p");
+        noTimerMsg.textContent = "You have no timers currently!";
+        document.querySelector(".noTimer").appendChild(noTimerMsg);
     }
-  }
-  // funtion to run the timer which is added
-  function runtimer(totalTime, newTimerCard) {
-    let timerContainer = newTimerCard.querySelector("#timer-container");
-    let hour = timerContainer.querySelector("#hour");
-    let minute = timerContainer.querySelector("#minute");
-    let seconds = timerContainer.querySelector("#seconds");
-  
-    // now set time interval for each second to update the values in DOM
-    const myTimerUpdate = setInterval(() => {
-      if (totalTime == 0) {
-        newTimerCard.classList.toggle("time-up");
-        newTimerCard.innerHTML = `
-                      <span></span>
-                      <span>Timer is Up!</span>
-                      <button class="btn delete-btn" onclick="deleteTimer(this)">Stop</button>
-                  `;
-        audio.play();
-        clearInterval(myTimerUpdate);
-      } else {
-        --totalTime;
-        hour.value = Math.floor(totalTime / 3600);
-        minute.value = Math.floor((totalTime % 3600) / 60);
-        seconds.value = totalTime % 60;
-      }
-    }, 1000);
-  }
-  
-  // delete timer function
-  function deleteTimer(deleteButton) {
-    audio.pause();
-    let currentTimerCard = deleteButton.parentNode;
-    currentTimerCard.remove();
-    --numberOfActiveTimers;
-    if (numberOfActiveTimers == 0) {
-      noTimerDisplayMessage.style.display = "block";
+    else {
+        document.querySelector(".noTimer").innerHTML = "";
     }
-  }
-  // event listeners
-  setButton.addEventListener("click", addNewTimer);
+}
+
+noTimerCheck();
+
+set.addEventListener('click', () => {
+    const hours = parseInt(hh.value) || 0;
+    const minutes = parseInt(mm.value) || 0;
+    const seconds = parseInt(ss.value) || 0;
+
+    // calculate the total time in seconds 
+    let totalTimeInSec = hours * 3600 + minutes * 60 + seconds;
+    
+    // create timer element 
+    const timerElement = document.createElement("div");
+    timerElement.classList.add("timerElementCount");
+    let text = document.createElement("p");
+    text.innerText = "Time Left: ";
+    let p = document.createElement("p");
+    p.textContent = formatTime(hours, minutes, seconds);
+
+    // create delete btn 
+    const deleteButton = document.createElement('button');
+    deleteButton.classList.add("deleteBtn");
+    deleteButton.textContent = "Delete";
+    deleteButton.addEventListener('click', ()=> {
+        timerElement.remove(text,timerElement,deleteButton);
+        clearInterval(intervalId);
+        noTimerCheck();
+    });
+
+    
+    // Append the timer element to the timers container 
+    timerElement.append(text,p,deleteButton);
+    timersContainer.append(timerElement);
+   
+    noTimerCheck();
+
+    // Start the timer using setInterval
+    const intervalId = setInterval( ()=> {
+        if(totalTimeInSec > 0){
+            totalTimeInSec--;
+
+            // update the timer text 
+            p.textContent = formatTime(
+                Math.floor(totalTimeInSec / 3600),
+                Math.floor((totalTimeInSec % 3600) / 60),
+                totalTimeInSec % 60
+            );
+        } else {
+            // Timer has reached 0
+            clearInterval(intervalId);
+            timerElement.classList.add("isFinished");
+            text.textContent = "";
+            p.textContent = "Timer is Up !";
+            deleteButton.textContent = "Stop";
+            // When timer is of play sound 
+            stopSound.play();   
+        }
+    },1000);
+    
+    deleteButton.addEventListener('click',()=>{
+        stopSound.pause();
+    });
+
+});
+
+function formatTime(hours,minutes,seconds) {
+    return (
+        padZero(hours) +' '+' '+':' +' '+' '+
+        padZero(minutes) +' '+' '+':'+' '+' '+
+        padZero(seconds)
+    );
+}
+
+// Helper function to pad single digit number with a leading zero 
+function padZero(num){
+    return num < 10 ? '0' + num : num;
+}
